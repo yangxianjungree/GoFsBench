@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+option go_package = "../common";
+ 
+message NetFsProtocolProto {
+	string Version = 1;
+	int32  Magic = 2;
+	int32  Appid = 3;
+	int32  Operation = 4;
+	string Checksum = 5;
+	int32  Type = 6;
+	int64  Size = 7;
+	string Message = 8;
+}

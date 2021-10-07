@@ -1,0 +1,28 @@
+{
+    "C_Cpp.updateChannel": "Insiders",
+    "http.proxySupport": "off",
+    "cmake.configureOnOpen": true,
+    "workbench.editor.enablePreview": false,
+    "git.autofetch": true,
+    "editor.renderControlCharacters": true,
+    "editor.renderWhitespace": "all",
+    "explorer.confirmDelete": false,
+    "workbench.editor.wrapTabs": true,
+    "go.useLanguageServer": true,
+    "[go]": {
+        "editor.insertSpaces": false,
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+        },
+        "editor.suggest.snippetsPreventQuickSuggestions": false
+    },
+    "go.toolsEnvVars": {
+        "GOPROXY": "https://goproxy.cn",
+        "GO111MODULE": "on",
+    },
+    "security.workspace.trust.untrustedFiles": "open",
+    "gopls": {
+        "experimentalWorkspaceModule": true
+    },
+}

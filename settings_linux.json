@@ -1,0 +1,43 @@
+{
+    "C_Cpp.updateChannel": "Insiders",
+    "http.proxySupport": "off",
+    "editor.renderWhitespace": "all",
+    "window.zoomLevel": 0,
+    "editor.wordWrap": "on",
+    "workbench.colorTheme": "Visual Studio Dark",
+    "C_Cpp.clang_format_sortIncludes": true,
+    "C_Cpp.default.cppStandard": "gnu++20",
+	"editor.fontFamily": "Consolas, 'Courier New', monospace",
+    "editor.insertSpaces": false,
+    "workbench.editor.highlightModifiedTabs": true,
+	"editor.detectIndentation": false,
+	"editor.acceptSuggestionOnEnter": "smart",
+	"explorer.confirmDelete": false,
+	"editor.fontSize": 13,
+	"cmake.configureOnOpen": true,
+	"git.autofetch": true,
+	"explorer.confirmDragAndDrop": false,
+	"workbench.editor.wrapTabs": true,
+	"remote.extensionKind": {
+	
+		"pub.name": [
+			"ui"
+		]
+	},
+    "[go]": {
+        "editor.insertSpaces": false,
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+        },
+        "editor.suggest.snippetsPreventQuickSuggestions": false
+    },
+    "go.toolsEnvVars": {
+        "GOPROXY": "https://goproxy.cn",
+        "GO111MODULE": "on",
+    },
+    "security.workspace.trust.untrustedFiles": "open",
+    "gopls": {
+        "experimentalWorkspaceModule": true
+    },
+}
