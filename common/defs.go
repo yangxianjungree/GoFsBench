@@ -27,8 +27,6 @@ const (
 	Kib                     = 1024
 	Mib                     = Kib * Kib
 	Gib                     = Mib * Kib
-	PAGE_SIZE               = 4 * Kib
-	LOG_CNT_PER_FILE        = 2 * 1000 * 1000
 	NetVersion       string = "0001"
 	NetMagic         int32  = 0x12345
 	NetAppid         int32  = 0x12345
@@ -38,4 +36,9 @@ const (
 	OP_END           string = "END"
 	OP_ACK           string = "ACK"
 	PANIC_STACK_SIZE        = 1 << 20
+)
+
+var (
+	PAGE_SIZE        = GetGlobalConfigIns().PageSize
+	LOG_CNT_PER_FILE = int64(getDefaultGlobalConfig().LogCountPerFile)
 )

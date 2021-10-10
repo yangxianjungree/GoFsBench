@@ -11,22 +11,22 @@
 #include <fcntl.h>
 
 
-typedef struct tpool_work{
-	void*             (*work_routine)(void*); //function to be called
-	void*             args;                   //arguments 
+typedef struct tpool_work {
+	void*              (*work_routine)(void*); //function to be called
+	void*              args;                   //arguments 
 	struct tpool_work* next;
 } tpool_work_t;
  
-typedef struct tpool{
+typedef struct tpool {
 	size_t               shutdown;       //is tpool shutdown or not, 1 ---> yes; 0 ---> no
-	size_t               maxnum_thread; // maximum of threads
+	size_t               maxnum_thread;  // maximum of threads
 	pthread_t            *thread_id;     // a array of threads
 	tpool_work_t*        tpool_head;     // tpool_work queue
 	pthread_cond_t       queue_ready;    // condition varaible
 	pthread_mutex_t      queue_lock;     // queue lock
 } tpool_t;
 
-static void* thread_routine(void* args)
+static void* thread_routine(void *args)
 {
 	tpool_t* pool = (tpool_t*)args;
 	tpool_work_t* work = NULL;
@@ -34,7 +34,7 @@ static void* thread_routine(void* args)
 	while (1) {
 		pthread_mutex_lock(&pool->queue_lock);
 		while (!pool->tpool_head && !pool->shutdown) {
-			// if there is no works and pool is not shutdown, it should be suspended for being awake
+			// If there is no works and pool is not shutdown, it should be suspended for being awake
 			pthread_cond_wait(&pool->queue_ready,&pool->queue_lock);
 		}
 
@@ -55,11 +55,11 @@ static void* thread_routine(void* args)
 	return NULL;
 }
 
-int create_tpool(tpool_t** pool,size_t max_thread_num)
+int create_tpool(tpool_t **pool, size_t max_thread_num, size_t prior_io_threads)
 {
 	(*pool) = (tpool_t*)malloc(sizeof(tpool_t));
 	if (NULL == *pool) {
-		printf("in %s,malloc tpool_t failed!,errno = %d,explain:%s\n",__func__,errno,strerror(errno));
+		dprintf(1, "In %s, malloc tpool_t failed! errno = %d, explain: %s\n", __func__, errno, strerror(errno));
 		exit(-1);
 	}
 
@@ -67,31 +67,50 @@ int create_tpool(tpool_t** pool,size_t max_thread_num)
 	(*pool)->maxnum_thread = max_thread_num;
 	(*pool)->thread_id = (pthread_t*)malloc(sizeof(pthread_t)*max_thread_num);
 	if ((*pool)->thread_id == NULL) {
-		printf("in %s,init thread id failed,errno = %d,explain:%s",__func__,errno,strerror(errno));
+		dprintf(1, "In %s, init thread id failed, errno = %d, explain: %s", __func__, errno, strerror(errno));
 		exit(-1);
 	}
 
 	(*pool)->tpool_head = NULL;
-	if (pthread_mutex_init(&((*pool)->queue_lock),NULL) != 0) {
-		printf("in %s,initial mutex failed,errno = %d,explain:%s",__func__,errno,strerror(errno));
+	if (pthread_mutex_init(&((*pool)->queue_lock), NULL) != 0) {
+		dprintf(1, "In %s, initial mutex failed,errno = %d, explain: %s", __func__, errno, strerror(errno));
 		exit(-1);
 	}
 	
-	if (pthread_cond_init(&((*pool)->queue_ready),NULL) != 0) {
-		// printf("in %s,initial condition variable failed,errno = %d,explain:%s",__func__,errno,strerror(errno));
+	if (pthread_cond_init(&((*pool)->queue_ready), NULL) != 0) {
+		dprintf(1, "In %s,initial condition variable failed, errno = %d, explain: %s", __func__, errno, strerror(errno));
 		exit(-1);
 	}
+
+	pthread_attr_t attr;
+	struct sched_param sched;
+	int rs = pthread_attr_init(&attr);
+	if (rs != 0) {
+		dprintf(1, "Init thread attr failed.\n");
+		perror("pthread_attr_init");
+		exit(-1);
+	}
+
+	struct sched_param param;
+	param.sched_priority = 51;
+	pthread_attr_setschedpolicy(&attr, SCHED_RR);
+	pthread_attr_setschedparam(&attr, &param);
+	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);//要使优先级其作用必须要有这句话
 	
 	for (int i = 0; i < max_thread_num; i++) {
-		if (pthread_create(&((*pool)->thread_id[i]),NULL,thread_routine,(void*)(*pool)) != 0) {
+		pthread_attr_t *at = i < prior_io_threads ? &attr : NULL;
+		if (pthread_create(&((*pool)->thread_id[i]), at, thread_routine, (void*)(*pool)) != 0) {
 			printf("pthread_create failed!\n");
+			if (i < prior_io_threads) {
+				dprintf(1, "You had set prior io threads, so try run it with sudo.\n");
+			}
 			exit(-1);
 		}
 	}
 	return 0;
 }
  
-void destroy_tpool(tpool_t* pool)
+void destroy_tpool(tpool_t *pool)
 {
 	tpool_work_t* tmp_work;
 	
@@ -105,7 +124,7 @@ void destroy_tpool(tpool_t* pool)
 	pthread_mutex_unlock(&pool->queue_lock);
 	
 	for (int i = 0; i < pool->maxnum_thread; i++) {
-		pthread_join(pool->thread_id[i],NULL);
+		pthread_join(pool->thread_id[i], NULL);
 	}
 
 	free(pool->thread_id);
@@ -120,9 +139,9 @@ void destroy_tpool(tpool_t* pool)
 	free(pool);
 }
  
-int add_task_2_tpool(tpool_t* pool,void* (*routine)(void*),void* args)
+int add_task_2_tpool(tpool_t *pool, void* (*routine)(void*), void *args)
 {
-	struct tpool_work* work,*member;
+	struct tpool_work* work, *member;
 	
 	if (!routine) {
 		printf("rontine is null!\n");
@@ -131,7 +150,6 @@ int add_task_2_tpool(tpool_t* pool,void* (*routine)(void*),void* args)
 	
 	work = (struct tpool_work*)malloc(sizeof(struct tpool_work));
 	if (!work) {
-		// printf("in %s,malloc work error!,errno = %d,explain:%s\n",__func__,errno,strerror(errno));
 		return -1;
 	}
 	
@@ -158,14 +176,17 @@ int add_task_2_tpool(tpool_t* pool,void* (*routine)(void*),void* args)
 
 static tpool_t* pool = NULL;
 
-void init_thread_pool(int threads)
+void init_thread_pool(int io_threads, int prior_io_threads)
 {
-	if (pool != NULL || threads < 1) {
+	if (pool != NULL) {
+		return;
+	} else if (io_threads < 1) {
+		dprintf(1, "Io thread must > 0.\n");
 		return;
 	}
 
-	if (0 != create_tpool(&pool, threads)) {
-		printf("create_tpool failed!\n");
+	if (0 != create_tpool(&pool, io_threads, prior_io_threads)) {
+		dprintf(1, "create_tpool failed!\n");
 		return;
 	}
 }

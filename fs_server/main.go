@@ -7,14 +7,10 @@ import (
 )
 
 var (
-	server_addr = ":9999"
-	// server = "127.0.0.1:9999"
-	// server = "192.168.1.4:9999"
+	server_addr = ":" + GetGlobalConfigIns().Port
 )
 
 func main() {
-	// debug.SetMaxThreads(20)
-
 	if !Init() {
 		ERR("Init failed.")
 		return

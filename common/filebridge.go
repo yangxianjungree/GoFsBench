@@ -29,11 +29,13 @@ type CPoolArgs struct {
 	done  chan bool
 }
 
-func initCPool(threads int) {
-	C.init_thread_pool(C.int(threads))
+func InitCPool() {
+	if GetGlobalConfigIns().UserCPoolIoSched {
+		C.init_thread_pool(C.int(GetGlobalConfigIns().IoThreads), C.int(GetGlobalConfigIns().PriorIoThreads))
+	}
 }
 
-func destroyCPool() {
+func DestroyCPool() {
 	C.destroy_thread_pool()
 }
 

@@ -11,10 +11,9 @@ import (
 
 var (
 	SUCCESS_TASKS int64 = 0
-	server              = ":9999"
-	// server              = "192.168.1.5:9999"
-	FILE_PREFIX = "bench_mark_file_"
-	USAGE       = "Usage: ./client [clean/bench/upload/download/exist/delete] corotine_num loop_num [file_size]"
+	server              = ":" + GetGlobalConfigIns().Port
+	FILE_PREFIX         = "bench_mark_file_"
+	USAGE               = "Usage: ./client [clean/bench/upload/download/exist/delete] corotine_num loop_num [file_size]"
 )
 
 func clearance(num, loop int) {

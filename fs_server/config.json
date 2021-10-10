@@ -1,0 +1,10 @@
+{
+	"Port":"9999",
+	"UserProtoMsg":true,
+	"PageSize":7096,
+	"MaxOpenFiles":102400,
+	"LogCountPerFile":2000000,
+	"UserCPoolIoSched":true,
+	"IoThreads":32,
+	"PriorIoThreads":3
+}

@@ -20,7 +20,7 @@ func TestBridgeRead(t *testing.T) {
 
 func TestBridgePoolWrite(t *testing.T) {
 	LOG_STD("Unit test........TestBridgePoolWrite.........")
-	initCPool(16)
+	InitCPool()
 
 	str := "mmmmmmmmmTestBridgePoolWritem\n"
 	CPoolWrite(1, []byte(str))
@@ -29,6 +29,7 @@ func TestBridgePoolWrite(t *testing.T) {
 
 func TestBridgePoolRead(t *testing.T) {
 	LOG_STD("Unit test........TestBridgePoolRead.........")
+	InitCPool()
 
 	str := make([]byte, 10)
 	CPoolRead(1, str)

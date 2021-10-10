@@ -2,29 +2,15 @@ package common
 
 import (
 	"os"
-	"sync"
-)
-
-const (
-	TYPE_FILE_WRAPPER_ORIGIN = false
 )
 
 var (
-	fileOperationIns  *TaskPool
-	fileOperationOnce sync.Once
+	TYPE_FILE_WRAPPER_ORIGIN = !GetGlobalConfigIns().UserCPoolIoSched
 )
 
 type FileWrapper struct {
 	real *os.File
 	fd   int
-}
-
-func GetFileOpsPoolIns() *TaskPool {
-	fileOperationOnce.Do(func() {
-		initCPool(16)
-		// fileOperationIns = NewTaskPool(NewTaskPoolBuckets(8, 10000))
-	})
-	return fileOperationIns
 }
 
 func NewFileWrapper(f *os.File, fd int) *FileWrapper {

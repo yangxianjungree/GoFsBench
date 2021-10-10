@@ -4,10 +4,6 @@ import (
 	. "common"
 )
 
-var (
-	max_open_file = 102400
-)
-
 func Init() bool {
 	SetLogName("log.server")
 	err := InitLog(0)
@@ -16,12 +12,12 @@ func Init() bool {
 		return false
 	}
 
-	if !SetMaxOpenFiles(uint64(max_open_file), uint64(max_open_file)) {
+	if !InitMaxOpenFiles() {
 		LOG_STD("Set max open files failed.")
 		return false
 	}
 
-	GetFileOpsPoolIns()
+	InitCPool()
 
 	return true
 }
