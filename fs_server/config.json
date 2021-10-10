@@ -4,6 +4,7 @@
 	"PageSize":7096,
 	"MaxOpenFiles":102400,
 	"LogCountPerFile":2000000,
+	"DataDir":"/home/stephen/devcloud/DATADIR",
 	"UserCPoolIoSched":true,
 	"IoThreads":32,
 	"PriorIoThreads":3

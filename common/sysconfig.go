@@ -17,6 +17,7 @@ const (
 	d_DEFAULT_MAX_OPEN_FILES      = 102400
 	d_DEFAULT_LOG_CNT_PER_FILE    = 2 * 1000 * 1000
 	d_DEFAULT_USE_C_POOL_IO_SCHED = true
+	d_DEFAULT_DATA_DIR            = "/home/stephen/devcloud/DATADIR"
 )
 
 type GlobalConfig struct {
@@ -25,6 +26,7 @@ type GlobalConfig struct {
 	PageSize         int
 	MaxOpenFiles     int
 	LogCountPerFile  int
+	DataDir          string
 	UserCPoolIoSched bool
 	IoThreads        int
 	PriorIoThreads   int
@@ -44,6 +46,7 @@ func getDefaultGlobalConfig() GlobalConfig {
 		PageSize:        d_DEFAULT_PAGE_SIZE,
 		MaxOpenFiles:    d_DEFAULT_MAX_OPEN_FILES,
 		LogCountPerFile: d_DEFAULT_LOG_CNT_PER_FILE,
+		DataDir:         d_DEFAULT_DATA_DIR,
 	}
 }
 

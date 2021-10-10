@@ -8,8 +8,8 @@ import (
 	"strconv"
 )
 
-const (
-	DATA_DIR         = "/home/stephen/devcloud/DATADIR"
+var (
+	DATA_DIR         = GetGlobalConfigIns().DataDir
 	STROGES_FILE_DIR = "stroges"
 	TMP_FILE_DIR     = "tmp"
 )
