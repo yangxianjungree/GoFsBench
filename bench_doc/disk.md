@@ -17,7 +17,7 @@
 使用 lsscsi 工具查看磁盘支持队列深度
 
 ```s
-#:~$ lsscsi -l
+$ lsscsi -l
 [3:0:0:0]    cd/dvd  NECVMWar VMware SATA CD01 1.00  /dev/sr0 
   state=running queue_depth=1 scsi_level=6 type=5 device_blocked=0 timeout=30
 [32:0:0:0]   disk    VMware,  VMware Virtual S 1.0   /dev/sda 
@@ -29,7 +29,8 @@
 iostat 查看磁盘sda利用率
 
 ```s
-iostat -x sda 3
+$ iostat -x sda 3
+...
 ```
 
 ## 2. 数据记录
@@ -41,7 +42,7 @@ dd if=/dev/zero of=test.img bs=4k count=1M
 ```
 
 |40G test.img|MBPS(吞吐率)|耗时|
-|--|--|--|--|
+|--|--|--|
 |bs=4k|145 MB/s|295.238 s|
 |bs=40k|118 MB/s|365.417 s|
 |bs=400k|109 MB/s|384.626 s|
@@ -72,47 +73,47 @@ FIO的测试参数：
 
 ```s
 写：
-fio -ioengine=libaio -bs=4k -direct=1 -thread -rw=randwrite -size=20G -filename=./test.img -name="EBS 4K randwrite test" -iodepth=64 -runtime=60 -numjobs=1
+$ fio -ioengine=libaio -bs=4k -direct=1 -thread -rw=randwrite -size=20G -filename=./test.img -name="EBS 4K randwrite test" -iodepth=64 -runtime=60 -numjobs=1
 
 读：
-fio -ioengine=libaio -bs=4k -direct=1 -thread -rw=randread -size=20G -filename=/dev/sda -name="EBS 4K randwrite test" -iodepth=64 -runtime=60 -numjobs=1
+$ fio -ioengine=libaio -bs=4k -direct=1 -thread -rw=randread -size=20G -filename=/dev/sda -name="EBS 4K randwrite test" -iodepth=64 -runtime=60 -numjobs=1
 ```
 
 |20G test.img bs=4k|MBPS(吞吐率)|util|iops|
-|--|--|--|--|--|
+|--|--|--|--|
 |randwrite|7842KiB/s|96.38%|2251.32|
 |write|38.4MiB/s|96.39%|10070.98|
 |randread|17.8MiB/s|99.98%|4552.33|
 |read|69.7MiB/s|100.00%|17775.17|
 
 |20G test.img bs=40k|MBPS(吞吐率)|util|iops|
-|--|--|--|--|--|
+|--|--|--|--|
 |randwrite|19.8MiB/s|99.75%|509.78|
 |write|30.8MiB/s|97.60%|789.85|
 |randread|88.2MiB/s|100.00%|2261.43|
 |read|365MiB/s|100.00%|9311.67|
 
 |20G test.img bs=400k|MBPS(吞吐率)|util|iops|
-|--|--|--|--|--|
+|--|--|--|--|
 |randwrite|38.2MiB/s|98.04%|103.11|
 |write|83.1MiB/s|98.75%|215.85|
 |randread|210MiB/s|99.91%|539.57|
 |read|535MiB/s|99.94%|1305.39|
 
 |20G test.img bs=4m|MBPS(吞吐率)|util|iops|
-|--|--|--|--|--|
+|--|--|--|--|
 |randwrite|50.3MiB/s|98.87%|21.06|
 |write|57.4MiB/s|98.49%|24.84|
 |randread|488MiB/s|99.84%|122.76|
 |read|517MiB/s|99.80%|127.38|
 
 |20G test.img bs=40m|MBPS(吞吐率)|util|iops|
-|--|--|--|--|--|
+|--|--|--|--|
 |randwrite|33.9MiB/s|95.09%||
 |write|96.5MiB/s|97.54%|4.03|
 |randread|603MiB/s|98.39%|14.37|
 |read|488MiB/s|94.09%|14.55|
 
 |20G test.img bs=400m|MBPS(吞吐率)|util|iops|
-|--|--|--|--|--|
+|--|--|--|--|
 |randwrite|core dumped|||
