@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -47,6 +48,14 @@ func get_tmp_path(checksum string) string {
 	return filepath.Join(DATA_DIR, TMP_FILE_DIR, checksum+".tmp")
 }
 
+func get_tmp_path1(checksum string, index string) string {
+	return filepath.Join(DATA_DIR, TMP_FILE_DIR, index, checksum+".tmp")
+}
+
+func get_file_path1(checksum string, index string) string {
+	return filepath.Join(DATA_DIR, TMP_FILE_DIR, index, checksum)
+}
+
 func rename(num, loop int) {
 	for i := 0; i < num; i++ {
 		wg.Add(1)
@@ -61,9 +70,11 @@ func rename(num, loop int) {
 
 				file_name := FILE_PREFIX + strconv.FormatInt(index, 10)
 				f_path := GetFilePath(file_name)
-				tmp_path := get_tmp_path(file_name)
-				// err := os.Rename(f_path, tmp_path)
+				// tmp_path_origin := get_file_path1(file_name, strconv.FormatInt(index%10, 10))
+				tmp_path := get_tmp_path1(file_name, strconv.FormatInt(index%10, 10))
 				err := os.Rename(tmp_path, f_path)
+				// err := os.Rename(tmp_path, tmp_path_origin)
+				// err := os.Rename(tmp_path, f_path)
 				if err == nil {
 					atomic.AddInt64(&SUCCESS_TASKS, 1)
 				} else {
@@ -153,7 +164,12 @@ func main() {
 		File_size: file_size,
 	}
 
-	LOG_STD("Parmas: ", params)
+	data, err := json.Marshal(params)
+	if err != nil {
+		LOG_STD("Parmas: ", params)
+	} else {
+		LOG_STD("Parmas: ", string(data))
+	}
 
 	file_client(server, params)
 	bench.SetSuccessTasks(uint64(atomic.LoadInt64(&SUCCESS_TASKS)))
