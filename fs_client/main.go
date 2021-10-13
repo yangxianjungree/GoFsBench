@@ -89,6 +89,9 @@ func rename(num, loop int) {
 }
 
 func main() {
+	// LevelDb()
+	// return
+
 	args := os.Args
 	if len(args) < 4 {
 		LOG_STD(USAGE)

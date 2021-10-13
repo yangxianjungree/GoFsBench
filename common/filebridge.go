@@ -14,9 +14,12 @@ package common
 import "C"
 import (
 	"errors"
+	"math"
+	"math/rand"
 	"os"
 	"runtime"
 	"strconv"
+	"time"
 	"unsafe"
 )
 
@@ -32,6 +35,8 @@ type CPoolArgs struct {
 func InitCPool() {
 	if GetGlobalConfigIns().UserCPoolIoSched {
 		C.init_thread_pool(C.int(GetGlobalConfigIns().IoThreads), C.int(GetGlobalConfigIns().PriorIoThreads))
+	} else {
+		InitIoPool(32)
 	}
 }
 
@@ -51,14 +56,14 @@ func go_debug_log(msg *C.char) {
 	LOG_STD("C function, ", C.GoString(msg))
 }
 
-func CPoolRead(fd int, buf []byte) (int, error) {
+func CPoolRead(fd int, buf []byte, done chan bool) (int, error) {
 	args := &CPoolArgs{
 		fd:    C.int(fd),
 		n:     0,
 		errno: 0,
 		cap:   C.int(len(buf)),
 		buff:  (*C.char)(unsafe.Pointer(&buf[0])),
-		done:  make(chan bool),
+		done:  done,
 	}
 
 	C.bridge_pool_read((*C.int)(unsafe.Pointer(args)))
@@ -66,14 +71,14 @@ func CPoolRead(fd int, buf []byte) (int, error) {
 	return waitCallBack(args)
 }
 
-func CPoolWrite(fd int, buf []byte) (int, error) {
+func CPoolWrite(fd int, buf []byte, done chan bool) (int, error) {
 	args := &CPoolArgs{
 		fd:    C.int(fd),
 		n:     0,
 		errno: 0,
 		cap:   C.int(len(buf)),
 		buff:  (*C.char)(unsafe.Pointer(&buf[0])),
-		done:  make(chan bool),
+		done:  done,
 	}
 
 	C.bridge_pool_write((*C.int)(unsafe.Pointer(args)))
@@ -97,7 +102,7 @@ func go_done_open_callback(args *C.int) {
 	t.done <- true
 }
 
-func CPoolOpen(name string, flag int, perm os.FileMode) (int, error) {
+func CPoolOpen(name string, flag int, perm os.FileMode, done chan bool) (int, error) {
 	buf := []byte(name)
 	args := &CPoolOpenArgs{
 		fd:    0,
@@ -105,7 +110,7 @@ func CPoolOpen(name string, flag int, perm os.FileMode) (int, error) {
 		mode:  C.int(perm),
 		path:  (*C.char)(unsafe.Pointer(&buf[0])),
 		errno: 0,
-		done:  make(chan bool),
+		done:  done,
 	}
 
 	C.bridge_pool_open((*C.int)(unsafe.Pointer(args)))
@@ -127,12 +132,12 @@ func go_done_close_callback(args *C.int) {
 	t.done <- true
 }
 
-func CPoolClose(fd int) error {
+func CPoolClose(fd int, done chan bool) error {
 	args := &CPoolCloseArgs{
 		fd:    C.int(fd),
 		ret:   0,
 		errno: 0,
-		done:  make(chan bool),
+		done:  done,
 	}
 
 	C.bridge_pool_close((*C.int)(unsafe.Pointer(args)))
@@ -157,7 +162,8 @@ func go_done_rename_callback(args *C.int) {
 
 func CPoolRename(oldname, newname string) error {
 	if TYPE_FILE_WRAPPER_ORIGIN {
-		return os.Rename(oldname, newname)
+		// return os.Rename(oldname, newname)
+		return PushRenameTask(oldname, newname)
 	}
 
 	ol := []byte(oldname)
@@ -175,6 +181,16 @@ func CPoolRename(oldname, newname string) error {
 	return waitRenameCallBack(args)
 }
 
+//获取一个n位随机数
+func getRand(n int) int {
+	//设置随机数动态种子
+	rand.Seed(time.Now().UnixNano())
+	//求出随机数的位数上限
+	pow10 := math.Pow10(n)
+	//获取随机数
+	return rand.Intn(int(pow10))
+}
+
 func BockingUtilDoneChannel(done chan bool) {
 	for {
 		select {
@@ -182,7 +198,7 @@ func BockingUtilDoneChannel(done chan bool) {
 			return
 		default:
 			runtime.Gosched()
-			continue
+			// time.Sleep(time.Duration(getRand(4)) * time.Nanosecond)
 		}
 	}
 }
