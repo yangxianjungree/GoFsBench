@@ -5,7 +5,7 @@
 	"MaxOpenFiles":102400,
 	"LogCountPerFile":2000000,
 	"DataDir":"/home/stephen/devcloud/DATADIR",
-	"UserCPoolIoSched":true,
+	"UserCPoolIoSched":false,
 	"IoThreads":32,
-	"PriorIoThreads":3
+	"PriorIoThreads":0
 }
