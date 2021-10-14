@@ -1,11 +1,12 @@
 {
 	"Port":"9999",
 	"UserProtoMsg":true,
-	"PageSize":7096,
+	"PageSize":4096,
 	"MaxOpenFiles":102400,
 	"LogCountPerFile":2000000,
 	"DataDir":"/home/stephen/devcloud/DATADIR",
-	"UserCPoolIoSched":false,
+	"UserPoolIoSched":"",
 	"IoThreads":32,
-	"PriorIoThreads":0
+	"PriorIoThreads":4,
+	"WaitingQueueLen":1000000
 }

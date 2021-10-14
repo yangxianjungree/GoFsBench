@@ -37,8 +37,3 @@ const (
 	OP_ACK           string = "ACK"
 	PANIC_STACK_SIZE        = 1 << 20
 )
-
-var (
-	PAGE_SIZE        = GetGlobalConfigIns().PageSize
-	LOG_CNT_PER_FILE = int64(getDefaultGlobalConfig().LogCountPerFile)
-)

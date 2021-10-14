@@ -104,7 +104,7 @@ func upload_file(np *FsProtocol, conn net.Conn) error {
 	end := GenRequestProtocol(MSG_UPLOAD, np.GetChecksum(), OP_END)
 
 	rename_start := time.Now()
-	err = CPoolRename(tmp_path, file_path)
+	err = RenameWrapper(tmp_path, file_path)
 	if err != nil {
 		ERR("Upload rename ", tmp_path, " to ", file_path, " failed, error: ", err)
 		end.SetMessage(err.Error())

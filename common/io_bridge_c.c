@@ -1,4 +1,4 @@
-#include "filebridge.h"
+#include "io_bridge_c.h"
 
 #include <pthread.h>
 #include <ctype.h>

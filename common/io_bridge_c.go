@@ -1,7 +1,7 @@
 package common
 
+// #include "io_bridge_c.h"
 // #include <unistd.h>
-// #include "filebridge.h"
 // #include <pthread.h>
 // #include <ctype.h>
 // #include <errno.h>
@@ -14,13 +14,14 @@ package common
 import "C"
 import (
 	"errors"
-	"math"
-	"math/rand"
 	"os"
-	"runtime"
 	"strconv"
-	"time"
+	"sync/atomic"
 	"unsafe"
+)
+
+var (
+	isCIoPoolInit int32 = 0
 )
 
 type CPoolArgs struct {
@@ -32,16 +33,17 @@ type CPoolArgs struct {
 	done  chan bool
 }
 
-func InitCPool() {
-	if GetGlobalConfigIns().UserCPoolIoSched {
+func initCIoPool() {
+	if atomic.LoadInt32(&isCIoPoolInit) == 0 && GetGlobalConfigIns().UseCIoPool() {
+		atomic.StoreInt32(&isCIoPoolInit, 1)
 		C.init_thread_pool(C.int(GetGlobalConfigIns().IoThreads), C.int(GetGlobalConfigIns().PriorIoThreads))
-	} else {
-		InitIoPool(32)
+		LOG_STD("Use C io thread pool.......")
 	}
 }
 
 func DestroyCPool() {
 	C.destroy_thread_pool()
+	atomic.StoreInt32(&isCIoPoolInit, 0)
 }
 
 //export go_done_callback
@@ -56,7 +58,7 @@ func go_debug_log(msg *C.char) {
 	LOG_STD("C function, ", C.GoString(msg))
 }
 
-func CPoolRead(fd int, buf []byte, done chan bool) (int, error) {
+func cPoolRead(fd int, buf []byte, done chan bool) (int, error) {
 	args := &CPoolArgs{
 		fd:    C.int(fd),
 		n:     0,
@@ -71,7 +73,7 @@ func CPoolRead(fd int, buf []byte, done chan bool) (int, error) {
 	return waitCallBack(args)
 }
 
-func CPoolWrite(fd int, buf []byte, done chan bool) (int, error) {
+func cPoolWrite(fd int, buf []byte, done chan bool) (int, error) {
 	args := &CPoolArgs{
 		fd:    C.int(fd),
 		n:     0,
@@ -86,7 +88,7 @@ func CPoolWrite(fd int, buf []byte, done chan bool) (int, error) {
 	return waitCallBack(args)
 }
 
-type CPoolOpenArgs struct {
+type cPoolOpenArgs struct {
 	fd    C.int
 	flag  C.int
 	mode  C.int
@@ -98,27 +100,11 @@ type CPoolOpenArgs struct {
 //export go_done_open_callback
 func go_done_open_callback(args *C.int) {
 	// LOG_STD("go_done_open_callback one done...............")
-	t := (*CPoolOpenArgs)(unsafe.Pointer(args))
+	t := (*cPoolOpenArgs)(unsafe.Pointer(args))
 	t.done <- true
 }
 
-func CPoolOpen(name string, flag int, perm os.FileMode, done chan bool) (int, error) {
-	buf := []byte(name)
-	args := &CPoolOpenArgs{
-		fd:    0,
-		flag:  C.int(flag),
-		mode:  C.int(perm),
-		path:  (*C.char)(unsafe.Pointer(&buf[0])),
-		errno: 0,
-		done:  done,
-	}
-
-	C.bridge_pool_open((*C.int)(unsafe.Pointer(args)))
-
-	return waitOpenCallBack(args)
-}
-
-type CPoolCloseArgs struct {
+type cPoolCloseArgs struct {
 	ret   C.int
 	fd    C.int
 	errno int
@@ -128,24 +114,11 @@ type CPoolCloseArgs struct {
 //export go_done_close_callback
 func go_done_close_callback(args *C.int) {
 	// LOG_STD("go_done_close_callback one done...............")
-	t := (*CPoolCloseArgs)(unsafe.Pointer(args))
+	t := (*cPoolCloseArgs)(unsafe.Pointer(args))
 	t.done <- true
 }
 
-func CPoolClose(fd int, done chan bool) error {
-	args := &CPoolCloseArgs{
-		fd:    C.int(fd),
-		ret:   0,
-		errno: 0,
-		done:  done,
-	}
-
-	C.bridge_pool_close((*C.int)(unsafe.Pointer(args)))
-
-	return waitCloseCallBack(args)
-}
-
-type CPoolRenameArgs struct {
+type cPoolRenameArgs struct {
 	ret     C.int
 	oldpath *C.char
 	newpath *C.char
@@ -156,51 +129,8 @@ type CPoolRenameArgs struct {
 //export go_done_rename_callback
 func go_done_rename_callback(args *C.int) {
 	// LOG_STD("go_done_rename_callback one done...............")
-	t := (*CPoolRenameArgs)(unsafe.Pointer(args))
+	t := (*cPoolRenameArgs)(unsafe.Pointer(args))
 	t.done <- true
-}
-
-func CPoolRename(oldname, newname string) error {
-	if TYPE_FILE_WRAPPER_ORIGIN {
-		// return os.Rename(oldname, newname)
-		return PushRenameTask(oldname, newname)
-	}
-
-	ol := []byte(oldname)
-	nw := []byte(newname)
-	args := &CPoolRenameArgs{
-		ret:     0,
-		oldpath: (*C.char)(unsafe.Pointer(&ol[0])),
-		newpath: (*C.char)(unsafe.Pointer(&nw[0])),
-		errno:   0,
-		done:    make(chan bool),
-	}
-
-	C.bridge_pool_rename((*C.int)(unsafe.Pointer(args)))
-
-	return waitRenameCallBack(args)
-}
-
-//获取一个n位随机数
-func getRand(n int) int {
-	//设置随机数动态种子
-	rand.Seed(time.Now().UnixNano())
-	//求出随机数的位数上限
-	pow10 := math.Pow10(n)
-	//获取随机数
-	return rand.Intn(int(pow10))
-}
-
-func BockingUtilDoneChannel(done chan bool) {
-	for {
-		select {
-		case <-done:
-			return
-		default:
-			runtime.Gosched()
-			// time.Sleep(time.Duration(getRand(4)) * time.Nanosecond)
-		}
-	}
 }
 
 func waitCallBack(args *CPoolArgs) (int, error) {
@@ -214,7 +144,7 @@ func waitCallBack(args *CPoolArgs) (int, error) {
 	return int(args.n), err
 }
 
-func waitOpenCallBack(args *CPoolOpenArgs) (int, error) {
+func waitOpenCallBack(args *cPoolOpenArgs) (int, error) {
 	BockingUtilDoneChannel(args.done)
 
 	// LOG_STD("Get done open msg...........")
@@ -225,7 +155,7 @@ func waitOpenCallBack(args *CPoolOpenArgs) (int, error) {
 	return int(args.fd), err
 }
 
-func waitCloseCallBack(args *CPoolCloseArgs) error {
+func waitCloseCallBack(args *cPoolCloseArgs) error {
 	BockingUtilDoneChannel(args.done)
 
 	// LOG_STD("Get done close msg...........")
@@ -236,7 +166,7 @@ func waitCloseCallBack(args *CPoolCloseArgs) error {
 	return err
 }
 
-func waitRenameCallBack(args *CPoolRenameArgs) error {
+func waitRenameCallBack(args *cPoolRenameArgs) error {
 	BockingUtilDoneChannel(args.done)
 
 	// LOG_STD("Get done rename msg...........")
@@ -247,12 +177,58 @@ func waitRenameCallBack(args *CPoolRenameArgs) error {
 	return err
 }
 
-func CRead(fd int, buf []byte) int {
+func cPoolOpen(name string, flag int, perm os.FileMode, done chan bool) (int, error) {
+	buf := []byte(name)
+	args := &cPoolOpenArgs{
+		fd:    0,
+		flag:  C.int(flag),
+		mode:  C.int(perm),
+		path:  (*C.char)(unsafe.Pointer(&buf[0])),
+		errno: 0,
+		done:  done,
+	}
+
+	C.bridge_pool_open((*C.int)(unsafe.Pointer(args)))
+
+	return waitOpenCallBack(args)
+}
+
+func cRead(fd int, buf []byte) int {
 	l := len(buf)
 	return int(C.bridge_read(C.int(fd), (*C.char)(unsafe.Pointer(&buf[0])), C.ulong(l)))
 }
 
-func CWrite(fd int, buf []byte) int {
+func cWrite(fd int, buf []byte) int {
 	l := len(buf)
 	return int(C.bridge_write(C.int(fd), (*C.char)(unsafe.Pointer(&buf[0])), C.ulong(l)))
+}
+
+func cPoolClose(fd int, done chan bool) error {
+	args := &cPoolCloseArgs{
+		fd:    C.int(fd),
+		ret:   0,
+		errno: 0,
+		done:  done,
+	}
+	defer close(done)
+
+	C.bridge_pool_close((*C.int)(unsafe.Pointer(args)))
+
+	return waitCloseCallBack(args)
+}
+
+func cPoolRename(oldname, newname string) error {
+	ol := []byte(oldname)
+	nw := []byte(newname)
+	args := &cPoolRenameArgs{
+		ret:     0,
+		oldpath: (*C.char)(unsafe.Pointer(&ol[0])),
+		newpath: (*C.char)(unsafe.Pointer(&nw[0])),
+		errno:   0,
+		done:    make(chan bool),
+	}
+
+	C.bridge_pool_rename((*C.int)(unsafe.Pointer(args)))
+
+	return waitRenameCallBack(args)
 }

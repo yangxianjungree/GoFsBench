@@ -17,7 +17,7 @@ func Init() bool {
 		return false
 	}
 
-	InitCPool()
+	InitIoPool()
 
 	return true
 }

@@ -1,6 +1,8 @@
 package common
 
 import (
+	"math"
+	"math/rand"
 	"runtime"
 	"time"
 )
@@ -40,4 +42,26 @@ func PanicStackInfo() []byte {
 		break
 	}
 	return buf
+}
+
+//获取一个n位随机数
+func getRand(n int) int {
+	//设置随机数动态种子
+	rand.Seed(time.Now().UnixNano())
+	//求出随机数的位数上限
+	pow10 := math.Pow10(n)
+	//获取随机数
+	return rand.Intn(int(pow10))
+}
+
+func BockingUtilDoneChannel(done chan bool) {
+	for {
+		select {
+		case <-done:
+			return
+		default:
+			runtime.Gosched()
+			// time.Sleep(time.Duration(getRand(4)) * time.Nanosecond)
+		}
+	}
 }
