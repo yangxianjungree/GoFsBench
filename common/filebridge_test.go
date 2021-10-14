@@ -23,7 +23,8 @@ func TestBridgePoolWrite(t *testing.T) {
 	InitCPool()
 
 	str := "mmmmmmmmmTestBridgePoolWritem\n"
-	CPoolWrite(1, []byte(str))
+	done := make(chan bool)
+	CPoolWrite(1, []byte(str), done)
 	LOG_STD("TestBridgePoolWrite done..........")
 }
 
@@ -32,6 +33,7 @@ func TestBridgePoolRead(t *testing.T) {
 	InitCPool()
 
 	str := make([]byte, 10)
-	CPoolRead(1, str)
+	done := make(chan bool)
+	CPoolRead(1, str, done)
 	LOG_STD("Have read data: ", str, " from stdio 1.......")
 }
