@@ -95,7 +95,7 @@ func pushOpenTask(name string, flag int, perm os.FileMode, done chan bool) (*os.
 	}
 	ioPool.PushTask(task)
 
-	BockingUtilDoneChannel(done)
+	<-done
 	return openArgs.f, openArgs.err
 }
 
@@ -113,7 +113,7 @@ func pushReadTask(f *os.File, b []byte, done chan bool) (int, error) {
 	}
 	ioPool.PushTask(task)
 
-	BockingUtilDoneChannel(done)
+	<-done
 	return readArgs.n, readArgs.err
 }
 
@@ -131,7 +131,7 @@ func pushWriteTask(f *os.File, b []byte, done chan bool) (int, error) {
 	}
 	ioPool.PushTask(task)
 
-	BockingUtilDoneChannel(done)
+	<-done
 	return writeArgs.n, writeArgs.err
 }
 
@@ -147,7 +147,7 @@ func pushCloseTask(f *os.File, done chan bool) error {
 	}
 	ioPool.PushTask(task)
 
-	BockingUtilDoneChannel(done)
+	<-done
 	return closeArgs.err
 }
 
@@ -166,6 +166,6 @@ func pushRenameTask(oldname, newname string) error {
 	}
 	ioPool.PushTask(task)
 
-	BockingUtilDoneChannel(done)
+	<-done
 	return writeArgs.err
 }

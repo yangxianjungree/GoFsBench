@@ -45,7 +45,7 @@ func PanicStackInfo() []byte {
 }
 
 //获取一个n位随机数
-func getRand(n int) int {
+func GetRand(n int) int {
 	//设置随机数动态种子
 	rand.Seed(time.Now().UnixNano())
 	//求出随机数的位数上限
@@ -55,13 +55,15 @@ func getRand(n int) int {
 }
 
 func BockingUtilDoneChannel(done chan bool) {
-	for {
-		select {
-		case <-done:
-			return
-		default:
-			runtime.Gosched()
-			// time.Sleep(time.Duration(getRand(4)) * time.Nanosecond)
-		}
-	}
+	<-done
+
+	// for {
+	// 	select {
+	// 	case <-done:
+	// 		return
+	// 	default:
+	// 		runtime.Gosched()
+	// 		// time.Sleep(time.Duration(GetRand(4)) * time.Nanosecond)
+	// 	}
+	// }
 }

@@ -22,7 +22,13 @@ import (
 
 var (
 	isCIoPoolInit int32 = 0
+	gCpoolIoQueue chan *cGoQueueElement
 )
+
+type cGoQueueElement struct {
+	ioType string
+	args   unsafe.Pointer
+}
 
 type CPoolArgs struct {
 	fd    C.int
@@ -37,7 +43,9 @@ func initCIoPool() {
 	if atomic.LoadInt32(&isCIoPoolInit) == 0 && GetGlobalConfigIns().UseCIoPool() {
 		atomic.StoreInt32(&isCIoPoolInit, 1)
 		C.init_thread_pool(C.int(GetGlobalConfigIns().IoThreads), C.int(GetGlobalConfigIns().PriorIoThreads))
+		gCpoolIoQueue = make(chan *cGoQueueElement, GetGlobalConfigIns().WaitingQueueLen)
 		LOG_STD("Use C io thread pool.......")
+		go backgroundPushCTask2CPool()
 	}
 }
 
@@ -56,36 +64,6 @@ func go_done_callback(args *C.int) {
 //export go_debug_log
 func go_debug_log(msg *C.char) {
 	LOG_STD("C function, ", C.GoString(msg))
-}
-
-func cPoolRead(fd int, buf []byte, done chan bool) (int, error) {
-	args := &CPoolArgs{
-		fd:    C.int(fd),
-		n:     0,
-		errno: 0,
-		cap:   C.int(len(buf)),
-		buff:  (*C.char)(unsafe.Pointer(&buf[0])),
-		done:  done,
-	}
-
-	C.bridge_pool_read((*C.int)(unsafe.Pointer(args)))
-
-	return waitCallBack(args)
-}
-
-func cPoolWrite(fd int, buf []byte, done chan bool) (int, error) {
-	args := &CPoolArgs{
-		fd:    C.int(fd),
-		n:     0,
-		errno: 0,
-		cap:   C.int(len(buf)),
-		buff:  (*C.char)(unsafe.Pointer(&buf[0])),
-		done:  done,
-	}
-
-	C.bridge_pool_write((*C.int)(unsafe.Pointer(args)))
-
-	return waitCallBack(args)
 }
 
 type cPoolOpenArgs struct {
@@ -188,7 +166,12 @@ func cPoolOpen(name string, flag int, perm os.FileMode, done chan bool) (int, er
 		done:  done,
 	}
 
-	C.bridge_pool_open((*C.int)(unsafe.Pointer(args)))
+	task := &cGoQueueElement{
+		ioType: "open",
+		args:   unsafe.Pointer(args),
+	}
+
+	pushCTask2CGoQueue(task)
 
 	return waitOpenCallBack(args)
 }
@@ -203,6 +186,46 @@ func cWrite(fd int, buf []byte) int {
 	return int(C.bridge_write(C.int(fd), (*C.char)(unsafe.Pointer(&buf[0])), C.ulong(l)))
 }
 
+func cPoolRead(fd int, buf []byte, done chan bool) (int, error) {
+	args := &CPoolArgs{
+		fd:    C.int(fd),
+		n:     0,
+		errno: 0,
+		cap:   C.int(len(buf)),
+		buff:  (*C.char)(unsafe.Pointer(&buf[0])),
+		done:  done,
+	}
+
+	task := &cGoQueueElement{
+		ioType: "read",
+		args:   unsafe.Pointer(args),
+	}
+
+	pushCTask2CGoQueue(task)
+
+	return waitCallBack(args)
+}
+
+func cPoolWrite(fd int, buf []byte, done chan bool) (int, error) {
+	args := &CPoolArgs{
+		fd:    C.int(fd),
+		n:     0,
+		errno: 0,
+		cap:   C.int(len(buf)),
+		buff:  (*C.char)(unsafe.Pointer(&buf[0])),
+		done:  done,
+	}
+
+	task := &cGoQueueElement{
+		ioType: "write",
+		args:   unsafe.Pointer(args),
+	}
+
+	pushCTask2CGoQueue(task)
+
+	return waitCallBack(args)
+}
+
 func cPoolClose(fd int, done chan bool) error {
 	args := &cPoolCloseArgs{
 		fd:    C.int(fd),
@@ -210,9 +233,13 @@ func cPoolClose(fd int, done chan bool) error {
 		errno: 0,
 		done:  done,
 	}
-	defer close(done)
 
-	C.bridge_pool_close((*C.int)(unsafe.Pointer(args)))
+	task := &cGoQueueElement{
+		ioType: "close",
+		args:   unsafe.Pointer(args),
+	}
+
+	pushCTask2CGoQueue(task)
 
 	return waitCloseCallBack(args)
 }
@@ -228,7 +255,41 @@ func cPoolRename(oldname, newname string) error {
 		done:    make(chan bool),
 	}
 
-	C.bridge_pool_rename((*C.int)(unsafe.Pointer(args)))
+	task := &cGoQueueElement{
+		ioType: "rename",
+		args:   unsafe.Pointer(args),
+	}
+
+	pushCTask2CGoQueue(task)
 
 	return waitRenameCallBack(args)
+}
+
+func pushCTask2CGoQueue(task *cGoQueueElement) {
+	gCpoolIoQueue <- task
+}
+
+func backgroundPushCTask2CPool() {
+	for {
+		select {
+		case msg := <-gCpoolIoQueue:
+			if atomic.LoadInt32(&isCIoPoolInit) != 1 {
+				return
+			}
+			switch msg.ioType {
+			case "open":
+				C.bridge_pool_open((*C.int)(msg.args))
+			case "read":
+				C.bridge_pool_read((*C.int)(msg.args))
+			case "write":
+				C.bridge_pool_write((*C.int)(msg.args))
+			case "close":
+				C.bridge_pool_close((*C.int)(msg.args))
+			case "rename":
+				C.bridge_pool_rename((*C.int)(msg.args))
+			default:
+				ERR("unkown io type: ", msg.ioType, ", data: ", msg.args)
+			}
+		}
+	}
 }

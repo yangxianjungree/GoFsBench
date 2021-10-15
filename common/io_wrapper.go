@@ -67,22 +67,23 @@ func (f *FileWrapper) Read(b []byte) (n int, err error) {
 }
 
 func (f *FileWrapper) Close() error {
+	var err error = nil
 	if GetGlobalConfigIns().UseGoIoPool() {
 		if f.real != nil {
-			return pushCloseTask(f.real, f.done)
+			err = pushCloseTask(f.real, f.done)
 		}
 	} else if GetGlobalConfigIns().UseCIoPool() {
 		if f.fd != -1 {
-			return cPoolClose(f.fd, f.done)
+			err = cPoolClose(f.fd, f.done)
 		}
 	}
 	if f.done != nil {
 		close(f.done)
 	}
 	if f.real != nil {
-		return f.real.Close()
+		err = f.real.Close()
 	}
-	return nil
+	return err
 }
 
 func RenameWrapper(oldname, newname string) error {
