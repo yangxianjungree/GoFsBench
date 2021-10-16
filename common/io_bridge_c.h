@@ -1,6 +1,8 @@
 #ifndef __FILE_BRIDGE_H__
 #define __FILE_BRIDGE_H__
 
+#define _GNU_SOURCE
+#include <sched.h>
 #include <unistd.h>
 
 ssize_t bridge_read(int fd, char *buf, size_t count);

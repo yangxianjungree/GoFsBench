@@ -30,6 +30,26 @@ static void* thread_routine(void *args)
 {
 	tpool_t* pool = (tpool_t*)args;
 	tpool_work_t* work = NULL;
+	
+	long cpu_cnt = sysconf(_SC_NPROCESSORS_ONLN);
+	pthread_t tid = pthread_self();
+	cpu_set_t mask;
+	CPU_ZERO(&mask);
+
+	for (int i = 0; i < pool->maxnum_thread; i++) {
+		if (tid == pool->thread_id[i]) {
+			CPU_SET(i % cpu_cnt, &mask);
+		}
+	}
+	if (sched_setaffinity(0, sizeof(mask), &mask) == -1) {
+		perror("sched_setaffinity failed");
+	} else {
+		for (int j = 0; j < CPU_SETSIZE; j++) { //CPU_SETSIZE 是定义在<sched.h>中的宏，通常是1024
+			if (CPU_ISSET(j, &mask)) {
+				dprintf(1, "current thread id: %ld, CPU %d\n", tid, j);
+			}
+		}
+	}
 
 	while (1) {
 		pthread_mutex_lock(&pool->queue_lock);
@@ -96,11 +116,11 @@ int create_tpool(tpool_t **pool, size_t max_thread_num, size_t prior_io_threads)
 	pthread_attr_setschedpolicy(&attr, SCHED_RR);
 	pthread_attr_setschedparam(&attr, &param);
 	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);//要使优先级其作用必须要有这句话
-	
+
 	for (int i = 0; i < max_thread_num; i++) {
 		pthread_attr_t *at = i < prior_io_threads ? &attr : NULL;
 		if (pthread_create(&((*pool)->thread_id[i]), at, thread_routine, (void*)(*pool)) != 0) {
-			printf("pthread_create failed!\n");
+			perror("pthread_create failed");
 			if (i < prior_io_threads) {
 				dprintf(1, "You had set prior io threads, so try run it with sudo.\n");
 			}
