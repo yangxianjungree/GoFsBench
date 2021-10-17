@@ -103,6 +103,8 @@ qps:  7913.0826996272945
 
 [rename优化](optimize/rename.md)
 
+[协议解析性能](bench_doc/bench_protocol.md)
+
 [原始 Go IO 接口性能](bench_doc/bench_origin.md)
 
 [IO 池化性能](bench_doc/bench_io_pool.md)
