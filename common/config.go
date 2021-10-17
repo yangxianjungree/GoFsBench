@@ -22,7 +22,8 @@ const (
 	d_DEFAULT_USE_POOL_IO_SCHED = "G"                              // C: 启用 c 线程池来处理文件; G: 启用 go 线程池; 其他：不使用 IO 线程池
 	d_DEFAULT_IO_THREADS        = 16                               // 启用 c/go IO 线程数量
 	d_DEFAULT_PRIOR_IO_THREADS  = 3                                // 如果使用 cgo IO 线程池，启用高优先级的 cgo IO 线程数量
-	d_DEFAULT_WAITING_QUEUE_LEN = 1000000                          // 启用高优先级 cgo IO 线程数量
+	d_DEFAULT_SET_CPU_AFFINITY  = true                             // 是否设置cgo中IO线程的CPU黏合性
+	d_DEFAULT_WAITING_QUEUE_LEN = 1000000                          // 启用IO池的带缓冲任务队列长度
 )
 
 type GlobalConfig struct {
@@ -35,6 +36,7 @@ type GlobalConfig struct {
 	UserPoolIoSched string
 	IoThreads       uint32
 	PriorIoThreads  uint32
+	SetCpuAffinity  bool
 	WaitingQueueLen int64
 }
 
@@ -54,6 +56,7 @@ func getDefaultGlobalConfig() GlobalConfig {
 		UserPoolIoSched: d_DEFAULT_USE_POOL_IO_SCHED,
 		IoThreads:       d_DEFAULT_IO_THREADS,
 		PriorIoThreads:  d_DEFAULT_PRIOR_IO_THREADS,
+		SetCpuAffinity:  d_DEFAULT_SET_CPU_AFFINITY,
 		WaitingQueueLen: d_DEFAULT_WAITING_QUEUE_LEN,
 	}
 }

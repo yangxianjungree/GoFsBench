@@ -3,10 +3,5 @@
 	"UserProtoMsg":true,
 	"PageSize":4096,
 	"MaxOpenFiles":102400,
-	"LogCountPerFile":2000000,
-	"DataDir":"/home/stephen/devcloud/DATADIR",
-	"UserPoolIoSched":"",
-	"IoThreads":16,
-	"PriorIoThreads":3,
-	"WaitingQueueLen":1000000
+	"LogCountPerFile":2000000
   }

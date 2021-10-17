@@ -44,7 +44,11 @@ type CPoolArgs struct {
 func initCIoPool() {
 	if atomic.LoadInt32(&isCIoPoolInit) == 0 && GetGlobalConfigIns().UseCIoPool() {
 		atomic.StoreInt32(&isCIoPoolInit, 1)
-		C.init_thread_pool(C.int(GetGlobalConfigIns().IoThreads), C.int(GetGlobalConfigIns().PriorIoThreads))
+		var setCpuAffinity int = 0
+		if GetGlobalConfigIns().SetCpuAffinity {
+			setCpuAffinity = 1
+		}
+		C.init_thread_pool(C.int(GetGlobalConfigIns().IoThreads), C.int(GetGlobalConfigIns().PriorIoThreads), C.int(setCpuAffinity))
 		gCpoolIoQueue = make(chan *cGoQueueElement, GetGlobalConfigIns().WaitingQueueLen)
 		LOG_STD("Use C io thread pool.......")
 		go backgroundPushCTask2CPool()

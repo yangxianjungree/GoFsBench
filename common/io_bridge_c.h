@@ -9,7 +9,7 @@ ssize_t bridge_read(int fd, char *buf, size_t count);
 
 ssize_t bridge_write(int fd, char *buf, size_t count);
 
-void init_thread_pool(int io_threads, int prior_io_threads);
+void init_thread_pool(int io_threads, int prior_io_threads, int set_cpu_affinity);
 
 void destroy_thread_pool();
 

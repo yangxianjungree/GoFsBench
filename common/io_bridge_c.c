@@ -24,6 +24,7 @@ typedef struct tpool {
 	tpool_work_t*        tpool_head;     // tpool_work queue
 	pthread_cond_t       queue_ready;    // condition varaible
 	pthread_mutex_t      queue_lock;     // queue lock
+	int                  set_cpu_affinity; // set io threads's cpu affinity
 } tpool_t;
 
 static void* thread_routine(void *args)
@@ -31,22 +32,24 @@ static void* thread_routine(void *args)
 	tpool_t* pool = (tpool_t*)args;
 	tpool_work_t* work = NULL;
 	
-	long cpu_cnt = sysconf(_SC_NPROCESSORS_ONLN);
-	pthread_t tid = pthread_self();
-	cpu_set_t mask;
-	CPU_ZERO(&mask);
+	if (pool->set_cpu_affinity == 1) {
+		long cpu_cnt = sysconf(_SC_NPROCESSORS_ONLN);
+		pthread_t tid = pthread_self();
+		cpu_set_t mask;
+		CPU_ZERO(&mask);
 
-	for (int i = 0; i < pool->maxnum_thread; i++) {
-		if (tid == pool->thread_id[i]) {
-			CPU_SET(i % cpu_cnt, &mask);
+		for (int i = 0; i < pool->maxnum_thread; i++) {
+			if (tid == pool->thread_id[i]) {
+				CPU_SET(i % cpu_cnt, &mask);
+			}
 		}
-	}
-	if (sched_setaffinity(0, sizeof(mask), &mask) == -1) {
-		perror("sched_setaffinity failed");
-	} else {
-		for (int j = 0; j < CPU_SETSIZE; j++) { //CPU_SETSIZE 是定义在<sched.h>中的宏，通常是1024
-			if (CPU_ISSET(j, &mask)) {
-				dprintf(1, "current thread id: %ld, CPU %d\n", tid, j);
+		if (sched_setaffinity(0, sizeof(mask), &mask) == -1) {
+			perror("sched_setaffinity failed");
+		} else {
+			for (int j = 0; j < CPU_SETSIZE; j++) { //CPU_SETSIZE 是定义在<sched.h>中的宏，通常是1024
+				if (CPU_ISSET(j, &mask)) {
+					dprintf(1, "current thread id: %ld, CPU %d\n", tid, j);
+				}
 			}
 		}
 	}
@@ -75,7 +78,7 @@ static void* thread_routine(void *args)
 	return NULL;
 }
 
-int create_tpool(tpool_t **pool, size_t max_thread_num, size_t prior_io_threads)
+int create_tpool(tpool_t **pool, size_t max_thread_num, size_t prior_io_threads, int set_cpu_affinity)
 {
 	(*pool) = (tpool_t*)malloc(sizeof(tpool_t));
 	if (NULL == *pool) {
@@ -85,6 +88,7 @@ int create_tpool(tpool_t **pool, size_t max_thread_num, size_t prior_io_threads)
 
 	(*pool)->shutdown = 0;
 	(*pool)->maxnum_thread = max_thread_num;
+	(*pool)->set_cpu_affinity = set_cpu_affinity;
 	(*pool)->thread_id = (pthread_t*)malloc(sizeof(pthread_t)*max_thread_num);
 	if ((*pool)->thread_id == NULL) {
 		dprintf(1, "In %s, init thread id failed, errno = %d, explain: %s", __func__, errno, strerror(errno));
@@ -196,7 +200,7 @@ int add_task_2_tpool(tpool_t *pool, void* (*routine)(void*), void *args)
 
 static tpool_t* pool = NULL;
 
-void init_thread_pool(int io_threads, int prior_io_threads)
+void init_thread_pool(int io_threads, int prior_io_threads, int set_cpu_affinity)
 {
 	if (pool != NULL) {
 		return;
@@ -205,7 +209,7 @@ void init_thread_pool(int io_threads, int prior_io_threads)
 		return;
 	}
 
-	if (0 != create_tpool(&pool, io_threads, prior_io_threads)) {
+	if (0 != create_tpool(&pool, io_threads, prior_io_threads, set_cpu_affinity)) {
 		dprintf(1, "create_tpool failed!\n");
 		return;
 	}
