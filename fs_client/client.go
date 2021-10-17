@@ -165,7 +165,7 @@ func client_delete_file(conn net.Conn, params *BenchParms, checksum string) erro
 		return err
 	}
 
-	if rsp.GetOperation() != MSG_DOWNLOAD_RSP {
+	if rsp.GetOperation() != MSG_DELETE_RSP {
 		return errors.New("Delete resoponse not match, op: " + strconv.Itoa(int(rsp.GetOperation())))
 	}
 
@@ -188,6 +188,10 @@ func client_exist_bench(conn net.Conn, params *BenchParms, checksum string) erro
 	if msg_rcv == nil {
 		ERR("Client exist recv reponse failed.")
 		return err
+	}
+
+	if msg_rcv.GetOperation() != MSG_EXIST_RSP {
+		return errors.New("Exist resoponse not match, op: " + strconv.Itoa(int(msg_rcv.GetOperation())))
 	}
 
 	DBG("Msg about existence: ", msg_rcv.GetMessage())
