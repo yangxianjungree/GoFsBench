@@ -236,14 +236,15 @@ ssize_t bridge_write(int fd, char *buf, size_t count)
 
 struct GoArgs {
 	int fd;
-	int n;
-	int err;
+	int* n;
+	int* err;
 	int cap;
 	char *buf;
 };
 
 void go_done_callback(int*);
 void go_done_open_callback(int*);
+void go_done_stat_callback(int*);
 void go_done_close_callback(int*);
 void go_done_rename_callback(int*);
 void go_debug_log(char*);
@@ -252,16 +253,19 @@ void* FuncRead(void* args)
 {
 	struct GoArgs *ga = (struct GoArgs *)args;
 	size_t n = read(ga->fd, ga->buf, ga->cap);
+	// dprintf(STDOUT_FILENO, "get data======fd: %d, len: %d=========%s\n", ga->fd, ga->cap, ga->buf);
 	if (n < 1) {
-		ga->err = errno;
+		*ga->err = errno;
+		// dprintf(STDOUT_FILENO, "read error: %d\n", errno);
+		// perror("read");
 	} else {
-		ga->err = 0;
+		*ga->err = 0;
 	}
 
-	ga->n = n;
+	*ga->n = n;
 	go_done_callback((int *)ga);
 
-	go_debug_log("Write done...............");
+	// go_debug_log("Read done...............");
 	return NULL;
 }
 
@@ -280,12 +284,12 @@ void* FuncWrite(void* args)
 	size_t n = write(ga->fd, ga->buf, ga->cap);
 	// go_debug_log("write done...............");
 	if (n < 1) {
-		ga->err = errno;
+		*ga->err = errno;
 	} else {
-		ga->err = 0;
+		*ga->err = 0;
 	}
 
-	ga->n = n;
+	*ga->n = n;
 	go_done_callback((int *)ga);
 
 	// go_debug_log("Write done...............");
@@ -299,11 +303,11 @@ void bridge_pool_write(int *args)
 }
 
 struct GoOpenArgs {
-	int fd;
+	int* fd;
 	int flag;
 	int mode;
 	char *path;
-	int err;
+	int* err;
 };
 
 void* FuncOpen(void* args)
@@ -313,14 +317,14 @@ void* FuncOpen(void* args)
 
 	int fd = open(ga->path, ga->flag, ga->mode);
 	if (fd < 1) {
-		ga->err = errno;
+		*ga->err = errno;
 		// dprintf(1, "open file err, fd: %d, errno: %d\n", fd, errno);
 	} else {
-		ga->err = 0;
+		*ga->err = 0;
 		// dprintf(1, "open file success, fd: %d\n", fd);
 	}
 
-	ga->fd = fd;
+	*ga->fd = fd;
 	go_done_open_callback((int *)ga);
 
 	return NULL;
@@ -332,10 +336,44 @@ void bridge_pool_open(int *args)
 	add_task_2_tpool(pool, FuncOpen, (void*)args);
 }
 
-struct GoCloseArgs {
-	int ret;
+struct GoStatArgs {
 	int fd;
-	int err;
+	int* stabuf;
+	int* ret;
+	int* err;
+};
+
+void* FuncStat(void* args)
+{
+	// go_debug_log("in FuncStat..............");
+	struct GoStatArgs *ga = (struct GoStatArgs *)args;
+	struct stat *st = (struct stat *)ga->stabuf;
+
+	int ret = fstat(ga->fd, st);
+	if (ret != 0) {
+		*ga->err = errno;
+		// dprintf(1, "stat file err, fd: %d, errno: %d\n", ga->fd, errno);
+	} else {
+		*ga->err = 0;
+		// dprintf(1, "stat file success, fd: %d, file size: %ld\n", ga->fd, st->st_size);
+	}
+
+	*ga->ret = ret;
+	go_done_stat_callback((int *)ga);
+
+	return NULL;
+}
+
+void bridge_pool_stat(int *args)
+{
+	// go_debug_log("in bridge_pool_stat.");
+	add_task_2_tpool(pool, FuncStat, (void*)args);
+}
+
+struct GoCloseArgs {
+	int* ret;
+	int fd;
+	int* err;
 };
 
 void* FuncClose(void* args)
@@ -345,13 +383,13 @@ void* FuncClose(void* args)
 
 	int ret = close(ga->fd);
 	if (ret != 0) {
-		ga->err = errno;
+		*ga->err = errno;
 		// dprintf(1, "open file err, fd: %d, errno: %d\n", ga->fd, errno);
 	} else {
-		ga->err = 0;
+		*ga->err = 0;
 	}
 
-	ga->ret = ret;
+	*ga->ret = ret;
 	go_done_close_callback((int *)ga);
 	return NULL;
 }
@@ -363,10 +401,10 @@ void bridge_pool_close(int *args)
 }
 
 struct GoRenameArgs {
-	int ret;
+	int* ret;
 	char *oldname;
 	char *newname;
-	int err;
+	int* err;
 };
 
 void* FuncRename(void* args)
@@ -376,13 +414,13 @@ void* FuncRename(void* args)
 
 	int ret = rename(ga->oldname, ga->newname);
 	if (ret != 0) {
-		ga->err = errno;
+		*ga->err = errno;
 		// dprintf(1, "rename file err, old: %s, new: %s, errno: %d\n", ga->oldname, ga->newname, errno);
 	} else {
-		ga->err = 0;
+		*ga->err = 0;
 	}
 
-	ga->ret = ret;
+	*ga->ret = ret;
 	go_done_rename_callback((int *)ga);
 
 	return NULL;

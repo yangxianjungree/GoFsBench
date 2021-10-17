@@ -19,6 +19,8 @@ void bridge_pool_write(int *args);
 
 void bridge_pool_open(int *args);
 
+void bridge_pool_stat(int *args);
+
 void bridge_pool_rename(int *args);
 
 void bridge_pool_close(int *args);

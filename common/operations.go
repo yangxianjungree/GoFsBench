@@ -1,6 +1,7 @@
 package common
 
 import (
+	"errors"
 	"math/rand"
 	"net"
 	"os"
@@ -30,7 +31,7 @@ func GetFileType(fileinfo os.FileInfo) int {
 	}
 }
 
-func DiskToNet(conn net.Conn, fi *os.File, filesize int) error {
+func DiskToNet(conn net.Conn, fi *FileWrapper, filesize int) error {
 	buf := make([]byte, PAGE_SIZE)
 	total_sent := 0
 	for total_sent < filesize {
@@ -43,6 +44,11 @@ func DiskToNet(conn net.Conn, fi *os.File, filesize int) error {
 		if err != nil {
 			ERR("DiskToNet read file content from disk failed, error: ", err)
 			return err
+		}
+
+		if n < 1 {
+			ERR("DiskToNet read file content from disk failed, read len: ", n)
+			return errors.New("read data from disk error")
 		}
 
 		_, err = conn.Write(buf[:n])

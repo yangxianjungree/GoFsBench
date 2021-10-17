@@ -5,7 +5,7 @@
 	"MaxOpenFiles":102400,
 	"LogCountPerFile":2000000,
 	"DataDir":"/home/stephen/devcloud/DATADIR",
-	"UserPoolIoSched":"C",
+	"UserPoolIoSched":"",
 	"SetCpuAffinity":false,
 	"IoThreads":32,
 	"PriorIoThreads":0,

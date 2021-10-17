@@ -1,6 +1,7 @@
 package common
 
 import (
+	"io/fs"
 	"os"
 	"sync"
 )
@@ -29,21 +30,11 @@ type openArgs struct {
 	err  error
 }
 
-func doOpen(v interface{}) {
-	task := v.(*openArgs)
-	task.f, task.err = os.OpenFile(task.name, task.flag, task.perm)
-}
-
 type readArgs struct {
 	f   *os.File
 	buf []byte
 	n   int
 	err error
-}
-
-func doRead(v interface{}) {
-	task := v.(*readArgs)
-	task.n, task.err = task.f.Read(task.buf)
 }
 
 type writeArgs struct {
@@ -53,14 +44,35 @@ type writeArgs struct {
 	err error
 }
 
-func doWrite(v interface{}) {
-	task := v.(*writeArgs)
-	task.n, task.err = task.f.Write(task.buf)
-}
-
 type closeArgs struct {
 	f   *os.File
 	err error
+}
+
+type statArgs struct {
+	f    *os.File
+	info fs.FileInfo
+	err  error
+}
+
+func doOpen(v interface{}) {
+	task := v.(*openArgs)
+	task.f, task.err = os.OpenFile(task.name, task.flag, task.perm)
+}
+
+func doStat(v interface{}) {
+	task := v.(*statArgs)
+	task.info, task.err = task.f.Stat()
+}
+
+func doRead(v interface{}) {
+	task := v.(*readArgs)
+	task.n, task.err = task.f.Read(task.buf)
+}
+
+func doWrite(v interface{}) {
+	task := v.(*writeArgs)
+	task.n, task.err = task.f.Write(task.buf)
 }
 
 func doClose(v interface{}) {
@@ -97,6 +109,23 @@ func pushOpenTask(name string, flag int, perm os.FileMode, done chan bool) (*os.
 
 	<-done
 	return openArgs.f, openArgs.err
+}
+
+func pushStatTask(f *os.File, done chan bool) (fs.FileInfo, error) {
+	st := &statArgs{
+		f:    f,
+		info: nil,
+		err:  nil,
+	}
+	task := &TaskElem{
+		done: done,
+		task: doStat,
+		args: st,
+	}
+	ioPool.PushTask(task)
+
+	<-done
+	return st.info, st.err
 }
 
 func pushReadTask(f *os.File, b []byte, done chan bool) (int, error) {

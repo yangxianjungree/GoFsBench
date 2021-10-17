@@ -22,7 +22,7 @@ func download_file(np *FsProtocol, conn net.Conn) error {
 	rsp := GenRequestProtocol(MSG_DOWNLOAD_RSP, np.GetChecksum(), OP_START)
 
 	file_path := GetFilePath(np.GetChecksum())
-	fi, err := os.OpenFile(file_path, os.O_RDONLY, 0)
+	fi, err := OpenFileWrapper(file_path, os.O_RDONLY, 0)
 	if err != nil {
 		ERR("Download open file: ", file_path, " failed, error: ", err)
 		rsp.SetMessage(err.Error())
