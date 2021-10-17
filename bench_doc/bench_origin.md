@@ -8,7 +8,7 @@
 
 ### 2.1 机器规格
 
-- 1.操作系统
+#### 2.1.1 操作系统
 
 ```shell
 # uname -a
@@ -16,29 +16,29 @@
 Linux xxx 5.11.0-34-generic #36~20.04.1-Ubuntu SMP Fri Aug 27 08:06:32 UTC 2021 x86_64 x86_64 x86_64 GNU/Linux
 ```
 
-- 2.硬件
+#### 2.1.2 硬件
 
-  - CPU
-    英特尔 Core i7-8700 @ 3.20GHz 六核 @ 3.20GHz
+- CPU
+  英特尔 Core i7-8700 @ 3.20GHz 六核 @ 3.20GHz
 
-  - 内存
-    8G
+- 内存
+  8G
 
-  - 磁盘
-    机械硬盘
+- 磁盘
+  机械硬盘
 
-  - 网卡
-    英特尔 Ethernet Connection  I219-V / 华擎 (千兆网卡)
+- 网卡
+  英特尔 Ethernet Connection  I219-V / 华擎 (千兆网卡)
 
-    ```s
-    iperf3 -s
-    ...
-    iperf3 -c 127.0.0.1 -t 60
-    ...
-    [ ID] Interval           Transfer     Bitrate         Retr
-    [  5]   0.00-60.00  sec   331 GBytes  47.3 Gbits/sec    0             sender
-    [  5]   0.00-60.00  sec   331 GBytes  47.3 Gbits/sec                  receiver
-    ```
+  ```s
+  iperf3 -s
+  ...
+  iperf3 -c 127.0.0.1 -t 60
+  ...
+  [ ID] Interval           Transfer     Bitrate         Retr
+  [  5]   0.00-60.00  sec   331 GBytes  47.3 Gbits/sec    0             sender
+  [  5]   0.00-60.00  sec   331 GBytes  47.3 Gbits/sec                  receiver
+  ```
 
 ### 2.2 数据
 

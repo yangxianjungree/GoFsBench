@@ -97,15 +97,15 @@ qps:  7913.0826996272945
 
 ### 5. 性能测试记录
 
-[磁盘测试](bench_doc/disk.md)
+[虚拟机规格/日志性能](bench_doc/machine_info.md)
+
+[fio磁盘性能测试](bench_doc/disk.md)
 
 [rename优化](optimize/rename.md)
 
-[本地网络测试](bench_doc/peer.md)
+[原始 Go IO 接口性能](bench_doc/bench_origin.md)
 
-[使用原始 Go IO 接口测试](bench_doc/bench_origin.md)
-
-[使用 IO 池化测试](bench_doc/bench_cpool.md)
+[IO 池化性能](bench_doc/bench_io_pool.md)
 
 ### 6. 结论
 
