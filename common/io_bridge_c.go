@@ -37,8 +37,8 @@ type cGoQueueElement struct {
 
 type CPoolArgs struct {
 	fd    C.int
-	n     *C.int
-	errno *C.int
+	n     C.int
+	errno C.int
 	cap   C.int
 	buff  *C.char
 	done  chan bool
@@ -126,11 +126,11 @@ func go_debug_log(msg *C.char) {
 }
 
 type cPoolOpenArgs struct {
-	fd    *C.int
+	fd    C.int
 	flag  C.int
 	mode  C.int
 	path  *C.char
-	errno *C.int
+	errno C.int
 	done  chan bool
 }
 
@@ -144,8 +144,8 @@ func go_done_open_callback(args *C.int) {
 type cPoolStatArgs struct {
 	fd      C.int
 	statbuf *C.int
-	ret     *C.int
-	errno   *C.int
+	ret     C.int
+	errno   C.int
 	done    chan bool
 }
 
@@ -157,9 +157,9 @@ func go_done_stat_callback(args *C.int) {
 }
 
 type cPoolCloseArgs struct {
-	ret   *C.int
+	ret   C.int
 	fd    C.int
-	errno *C.int
+	errno C.int
 	done  chan bool
 }
 
@@ -171,10 +171,10 @@ func go_done_close_callback(args *C.int) {
 }
 
 type cPoolRenameArgs struct {
-	ret     *C.int
+	ret     C.int
 	oldpath *C.char
 	newpath *C.char
-	errno   *C.int
+	errno   C.int
 	done    chan bool
 }
 
@@ -190,10 +190,10 @@ func waitCallBack(args *CPoolArgs) (int, error) {
 
 	// LOG_STD("Get done msg...........")
 	var err error = nil
-	if int(*args.errno) != 0 {
-		err = errors.New("errno is: " + strconv.Itoa(int(*args.errno)))
+	if int(args.errno) != 0 {
+		err = errors.New("errno is: " + strconv.Itoa(int(args.errno)))
 	}
-	return int(*args.n), err
+	return int(args.n), err
 }
 
 func waitOpenCallBack(args *cPoolOpenArgs) (int, error) {
@@ -201,10 +201,10 @@ func waitOpenCallBack(args *cPoolOpenArgs) (int, error) {
 
 	// LOG_STD("Get done open msg...........")
 	var err error = nil
-	if int(*args.errno) != 0 {
-		err = errors.New("errno is: " + strconv.Itoa(int(*args.errno)))
+	if int(args.errno) != 0 {
+		err = errors.New("errno is: " + strconv.Itoa(int(args.errno)))
 	}
-	return int(*args.fd), err
+	return int(args.fd), err
 }
 
 func waitStatCallBack(args *cPoolStatArgs, name string) (fs.FileInfo, error) {
@@ -212,8 +212,8 @@ func waitStatCallBack(args *cPoolStatArgs, name string) (fs.FileInfo, error) {
 
 	// LOG_STD("Get done open msg...........")
 	var err error = nil
-	if *args.ret != 0 {
-		err = errors.New("errno is: " + strconv.Itoa(int(*args.errno)))
+	if args.ret != 0 {
+		err = errors.New("errno is: " + strconv.Itoa(int(args.errno)))
 	}
 	return newFileInfoFromC((*syscall.Stat_t)(unsafe.Pointer(args.statbuf)), name), err
 }
@@ -223,8 +223,8 @@ func waitCloseCallBack(args *cPoolCloseArgs) error {
 
 	// LOG_STD("Get done close msg...........")
 	var err error = nil
-	if int(*args.errno) != 0 {
-		err = errors.New("errno is: " + strconv.Itoa(int(*args.errno)))
+	if int(args.errno) != 0 {
+		err = errors.New("errno is: " + strconv.Itoa(int(args.errno)))
 	}
 	return err
 }
@@ -234,22 +234,20 @@ func waitRenameCallBack(args *cPoolRenameArgs) error {
 
 	// LOG_STD("Get done rename msg...........")
 	var err error = nil
-	if int(*args.errno) != 0 {
-		err = errors.New("errno is: " + strconv.Itoa(int(*args.errno)))
+	if int(args.errno) != 0 {
+		err = errors.New("errno is: " + strconv.Itoa(int(args.errno)))
 	}
 	return err
 }
 
 func cPoolOpen(name string, flag int, perm os.FileMode, done chan bool) (int, error) {
-	var fd int = 0
-	var e int = 0
 	buf := []byte(name)
 	args := &cPoolOpenArgs{
-		fd:    (*C.int)(unsafe.Pointer(&fd)),
+		fd:    0,
 		flag:  C.int(flag),
 		mode:  C.int(perm),
 		path:  (*C.char)(unsafe.Pointer(&buf[0])),
-		errno: (*C.int)(unsafe.Pointer(&e)),
+		errno: 0,
 		done:  done,
 	}
 
@@ -265,13 +263,11 @@ func cPoolOpen(name string, flag int, perm os.FileMode, done chan bool) (int, er
 
 func cPoolStat(fd int, name string, done chan bool) (fs.FileInfo, error) {
 	var stat syscall.Stat_t
-	var ret int = 0
-	var e int = 0
 	args := &cPoolStatArgs{
 		fd:      C.int(fd),
 		statbuf: (*C.int)(unsafe.Pointer(&stat)),
-		ret:     (*C.int)(unsafe.Pointer(&ret)),
-		errno:   (*C.int)(unsafe.Pointer(&e)),
+		ret:     0,
+		errno:   0,
 		done:    done,
 	}
 
@@ -296,12 +292,10 @@ func cWrite(fd int, buf []byte) int {
 }
 
 func cPoolRead(fd int, buf []byte, done chan bool) (int, error) {
-	var l int = 0
-	var e int = 0
 	args := &CPoolArgs{
 		fd:    C.int(fd),
-		n:     (*C.int)(unsafe.Pointer(&l)),
-		errno: (*C.int)(unsafe.Pointer(&e)),
+		n:     0,
+		errno: 0,
 		cap:   C.int(len(buf)),
 		buff:  (*C.char)(unsafe.Pointer(&buf[0])),
 		done:  done,
@@ -318,12 +312,10 @@ func cPoolRead(fd int, buf []byte, done chan bool) (int, error) {
 }
 
 func cPoolWrite(fd int, buf []byte, done chan bool) (int, error) {
-	var l int = 0
-	var e int = 0
 	args := &CPoolArgs{
 		fd:    C.int(fd),
-		n:     (*C.int)(unsafe.Pointer(&l)),
-		errno: (*C.int)(unsafe.Pointer(&e)),
+		n:     0,
+		errno: 0,
 		cap:   C.int(len(buf)),
 		buff:  (*C.char)(unsafe.Pointer(&buf[0])),
 		done:  done,
@@ -340,12 +332,10 @@ func cPoolWrite(fd int, buf []byte, done chan bool) (int, error) {
 }
 
 func cPoolClose(fd int, done chan bool) error {
-	var ret int = 0
-	var e int = 0
 	args := &cPoolCloseArgs{
 		fd:    C.int(fd),
-		ret:   (*C.int)(unsafe.Pointer(&ret)),
-		errno: (*C.int)(unsafe.Pointer(&e)),
+		ret:   0,
+		errno: 0,
 		done:  done,
 	}
 
@@ -360,15 +350,13 @@ func cPoolClose(fd int, done chan bool) error {
 }
 
 func cPoolRename(oldname, newname string) error {
-	var ret int = 0
-	var e int = 0
 	ol := []byte(oldname)
 	nw := []byte(newname)
 	args := &cPoolRenameArgs{
-		ret:     (*C.int)(unsafe.Pointer(&ret)),
+		ret:     0,
 		oldpath: (*C.char)(unsafe.Pointer(&ol[0])),
 		newpath: (*C.char)(unsafe.Pointer(&nw[0])),
-		errno:   (*C.int)(unsafe.Pointer(&e)),
+		errno:   0,
 		done:    make(chan bool),
 	}
 
