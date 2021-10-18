@@ -1,0 +1,5 @@
+fs_server/log.server.*
+fs_server/FsServer
+fs_client/log.client.*
+fs_client/FsClient
+test/*
